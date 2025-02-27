@@ -1,1 +1,3 @@
-I'll finish this markdown after complete the project
+# QRC Project
+
+I'll finish this markdown after completing the project.
