@@ -1,0 +1,53 @@
+{
+    "pyqt-integration.qtdesigner.path": "/opt/miniconda3/bin/pyuic5",
+    "python.defaultInterpreterPath": "/opt/homebrew/bin/python3.12",
+    "git.suggestSmartCommit": false,
+    "settingsSync.ignoredSettings": [],
+    "workbench.editor.enablePreview": false,
+    "[python]": {
+        "diffEditor.ignoreTrimWhitespace": false
+    },
+    "terminal.integrated.inheritEnv": false,
+    "workbench.startupEditor": "none",
+    "files.associations": {
+        "*.lyx": "latex"
+    },
+    "json.schemas": [
+
+    ],
+    "workbench.colorCustomizations": {
+        "terminal.background": "#00000000"
+    },
+    "workbench.settings.applyToAllProfiles": [
+        "workbench.colorCustomizations"
+    ],
+    "window.titleBarStyle": "custom",
+    "workbench.iconTheme": "vs-minimal",
+    "gitlens.ai.model": "vscode",
+    "gitlens.ai.vscode.model": "copilot:gpt-3.5-turbo",
+    "gitlens.gitCommands.skipConfirmations": [
+        "fetch:command",
+        "stash-push:command",
+        "branch-create:command"
+    ],
+    "python.locator": "js",
+    "vs-kubernetes": {
+        "vscode-kubernetes.helm-path-mac": "/Users/dyy/.vs-kubernetes/tools/helm/darwin-arm64/helm",
+        "vscode-kubernetes.minikube-path-mac": "/Users/dyy/.vs-kubernetes/tools/minikube/darwin-arm64/minikube"
+    },
+    "github.copilot.selectedCompletionModel": "",
+    "workbench.activityBar.location": "top",
+    "window.customTitleBarVisibility": "windowed",
+    "workbench.preferredDarkColorTheme": "Visual Studio Dark",
+    "workbench.colorTheme": "Light",
+    "workbench.preferredLightColorTheme": "Visual Studio Light",
+    "files.autoSave": "onWindowChange",
+    "window.autoDetectColorScheme": true,
+    "terminal.integrated.cursorBlinking": true,
+    "terminal.integrated.copyOnSelection": true,
+    "terminal.integrated.cursorStyleInactive": "line",
+    "terminal.integrated.cursorStyle": "line",
+    "terminal.integrated.defaultProfile.osx": "zsh",
+    
+}
+
