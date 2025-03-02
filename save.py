@@ -1,3 +1,59 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib
+matplotlib.rc("font",family='Kai')
+plt.rcParams['axes.unicode_minus'] =False
+from pyqpanda import *
+from scipy.integrate import solve_ivp
+from sklearn.linear_model import Ridge
+from sklearn.metrics import mean_squared_error
+from mpl_toolkits.mplot3d import Axes3D
+
+def RK45(x, func, h):
+    """四阶龙格-库塔积分器"""
+    K1 = func(x)
+    K2 = func(x + h/2*K1)
+    K3 = func(x + h/2*K2)
+    K4 = func(x + h*K3)
+    return x + h/6*(K1 + 2*K2 + 2*K3 + K4)
+
+def L63_rhs(x, sigma=10.0, rho=28.0, beta=8/3):
+    """定义Lorenz 63微分方程"""
+    dx = np.zeros(3)
+    dx[0] = sigma * (x[1] - x[0])
+    dx[1] = rho*x[0] - x[1] - x[0]*x[2]
+    dx[2] = x[0]*x[1] - beta*x[2]
+    return dx
+
+def integrate_lorenz63(x0, num_steps=3100, dt=0.05):
+    """执行数值积分"""
+    trajectory = np.zeros((num_steps, 3))
+    trajectory[0] = x0
+    for t in range(1, num_steps):
+        trajectory[t] = RK45(trajectory[t-1], L63_rhs, dt)
+    return trajectory
+
+def normalize_trajectory(trajectory):
+    """将轨迹归一化到[0, 1]范围"""
+    # 计算每个坐标轴的极值
+    mins = np.min(trajectory, axis=0)
+    maxs = np.max(trajectory, axis=0)
+    
+    # 线性归一化公式：new = (original - min)/(max - min)
+    normalized =(trajectory - mins) / (maxs - mins)
+    return normalized
+
+# 参数设置
+x0 = np.array([1.508870, -1.531271, 25.46091])  # 混沌初值
+traj = integrate_lorenz63(x0)
+
+# 应用归一化
+traj_normalized = normalize_trajectory(traj)
+
+# 划分训练集和测试集
+train_data = traj_normalized[:3000]
+test_data = traj_normalized[3000:3100]
+
 # 在循环开始前初始化列表
 all_sorted_values = []
 # 对于8个量子比特，可能的状态总数是2^8=256
@@ -9,7 +65,7 @@ quantum_outputs = []
 # 初始化上一次的概率值为None
 prev_sorted_values = None
 #参数\varepsilon
-varepsilon = 0.05
+varepsilon = 0.2
 
 
 for i in range(3000):
@@ -57,8 +113,8 @@ for i in range(3000):
     circuit << CNOT(qubits[4], qubits[5])
     circuit << CNOT(qubits[5], qubits[6])
     circuit << CNOT(qubits[6], qubits[7])
-    circuit << CNOT(qubits[7], qubits[0]) 
-    #circuit << 参数\beta
+    circuit << RZ(qubits[0], np.pi/3)  # 使用一个固定值替代beta参数
+    
     prog << circuit << measure_all(qubits, cbits)
     # 运行多次量子程序，并返回测量结果
     result = qvm.run_with_configuration(prog, cbits, shots)
@@ -79,9 +135,12 @@ for i in range(3000):
 
     # 非线性化处理：新概率 = 0.2*当前概率 + 0.8*上一次概率
     if i > 0 and prev_values is not None:
+        sorted_values = []  # 确保变量被初始化
         for j in range(len(raw_sorted_values)):
             sorted_values[j] = round(varepsilon * raw_sorted_values[j] + (1 - varepsilon) * prev_values[j], 7)
-    
+    else:
+        sorted_values = raw_sorted_values.copy()
+
     all_sorted_values.append(sorted_values)
     quantum_outputs.append(sorted_values)
 
@@ -179,9 +238,11 @@ for i in range(100):
     raw_quantum_output = [probabilities[state] for state in sorted_states]
     
     # 对预测阶段的概率也进行非线性化处理
+    current_quantum_output = []
     for j in range(len(raw_quantum_output)):
-        current_quantum_output = round(varepsilon * raw_quantum_output[j] + (1 - varepsilon) * prev_pred_values[j], 7)
-
+        new_prob = round(varepsilon * raw_quantum_output[j] + (1 - varepsilon) * prev_pred_values[j], 7)
+        current_quantum_output.append(new_prob)
+    # 更新上一次的概率值
     prev_pred_values=current_quantum_output.copy()
 
     qvm.finalize()
@@ -200,8 +261,8 @@ fig = plt.figure(figsize=(15, 10))
 
 # 绘制x坐标对比
 ax1 = fig.add_subplot(311)
-ax1.plot(range(3001, 3501), test_data[:, 0], 'b-', label='实际值')
-ax1.plot(range(3001, 3501), predictions[:, 0], 'r--', label='量子预测值')
+ax1.plot(range(3001, 3101), test_data[:, 0], 'b-', label='实际值')
+ax1.plot(range(3001, 3101), predictions[:, 0], 'r--', label='量子预测值')
 ax1.set_title('x坐标对比')
 ax1.set_xlabel('时间步')
 ax1.set_ylabel('归一化x值')
@@ -224,14 +285,6 @@ ax3.set_title('z坐标对比')
 ax3.set_xlabel('时间步')
 ax3.set_ylabel('归一化z值')
 ax3.legend()
-    # 更新上一次的概率值
-    #prev_pred_values = current_quantum_output.copy()
-    # 对预测阶段的概率也进行非线性化处理
-    #varepsilon = 0.2
-    #current_quantum_output = []
-    #for j in range(len(raw_quantum_output)):
-    #    new_prob = round(varepsilon * raw_quantum_output[j] + (1 - varepsilon) * prev_pred_values[j], 7)
-    #    current_quantum_output.append(new_prob)
 plt.savefig('/Users/dyy/github/QRC_project1/quantum_prediction_comparison.png')
 plt.show()
 
