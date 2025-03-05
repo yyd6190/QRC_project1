@@ -40,7 +40,7 @@ Y_test = trajectory[train_size+1:, :]
 
 # 创建Reservoir（储备池）和Ridge读出层 - 为混沌系统增加节点数
 reservoir = Reservoir(units=3000, spectral_radius=0.9, input_scaling=0.5, 
-                     leak_rate=0.8, connectivity=0.2)
+                     leak_rate=0.05, connectivity=0.2)
 readout = Ridge(ridge=1e-6)
 
 # 构建流水线：储备池 >> 读出层
