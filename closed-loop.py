@@ -12,8 +12,8 @@ from mpl_toolkits.mplot3d import Axes3D
 
 #Lorenz63系统部分
 
-def lorenz63(x0, sigma, rho, beta, num_steps):
-    dt = 6/(num_steps*0.9056)
+def lorenz63(x0, sigma, rho, beta, num_steps, dt):
+    
     def RK45(x, func, h):
         """四阶龙格-库塔积分器"""
         K1 = func(x)
@@ -213,7 +213,7 @@ class ClassicalReservoirComputing:
 '''
 #Quantum Reservoir Computing 部分
 
-def all_probabilities(traj_normalized,varepsilon, n_qubits, n_cbits, seed):
+def all_probabilities(traj_normalized,varepsilon, n_qubits, n_cbits, seed, lll):
 
     def update_params():
         params = [0] * (2**n_qubits)
@@ -223,7 +223,7 @@ def all_probabilities(traj_normalized,varepsilon, n_qubits, n_cbits, seed):
                 params[j] = sorted_values[j]*4*np.pi
         return params
 
-    def create_quantum_circuit():
+    def create_quantum_circuit(R1, R2, R3):
         """创建并返回量子线路"""
         qvm = CPUQVM()
         qvm.init_qvm()
@@ -245,9 +245,9 @@ def all_probabilities(traj_normalized,varepsilon, n_qubits, n_cbits, seed):
         # 构建量子程序
         prog = QProg()
         circuit = QCircuit()
-        circuit << module(Ry=params)
-        circuit << module(Ry=traj_norm)
-        circuit << module(Ry=beta_gate)
+        circuit << module(Ry=R1)
+        circuit << module(Ry=R2)
+        circuit << module(Ry=R3)
         prog << circuit
         
         result = qvm.prob_run_dict(prog, qubits, -1)
@@ -259,17 +259,17 @@ def all_probabilities(traj_normalized,varepsilon, n_qubits, n_cbits, seed):
         if i > 0:
             raw_sorted_values = [0] * len(sorted_values)
             for j in range(len(sorted_values)):
-                raw_sorted_values[j] = round(varepsilon * value_list[j] + (1 - varepsilon) * sorted_values[j],9)
+                raw_sorted_values[j] = round(varepsilon * value_list[j] + (1 - varepsilon) * sorted_values[j],5)
         else:
             raw_sorted_values = value_list.copy()
         return raw_sorted_values
     quantum_outputs = [[0]*(2**n_qubits)]
-    for i in range(len(traj_normalized)):
+    for i in range(lll):
         params = update_params()
         traj_norm = 4*np.pi*traj_normalized[i]
         np.random.seed (seed) 
         beta_gate = np.random.uniform (0,2*np.pi,n_qubits)
-        value_list = create_quantum_circuit()
+        value_list = create_quantum_circuit(R1=params, R2=traj_norm, R3=beta_gate)
         sorted_values = nolinearize()
         quantum_outputs.append(sorted_values)
     return quantum_outputs, n_qubits, n_cbits
@@ -288,9 +288,9 @@ def train_ridge_model(washout,nstop_train, alpha, loading_dataX, loading_datay):
     ridge.fit(X_train, y_train)
     return ridge, washout, nstop_train
 
-def predict_next_state(method, loading_dataX, loading_datay):
+def predict_next_state(method, loading_dataX, loading_datay, llll):
     predictions = []
-    for i in range(len(loading_datay)):  
+    for i in range(llll):  
         features = loading_dataX[i]  # 使用已有的量子输出
         all_state_pred = method.predict([features])  # 使用传入的method对象
         predictions.append(all_state_pred[0])
@@ -428,33 +428,41 @@ def plot_comparison(dimensions=('x', 'y', 'z'), plot_3d=True, plot_washout = Fal
         ax.legend()
         plt.show()
 
-#主函数[1.208870, -1.731271, 23.46091]
+#主函数
 if __name__ == "__main__":
     traj_normalized = lorenz63(x0 = np.array([1.508870, -1.531271, 25.46091]),
                                sigma=10.0,
                                rho=28.0,
                                beta=8/3,
-                               num_steps=4000) 
-    ##print(traj_normalized)
-    
+                               num_steps=40000,
+                               dt=0.001*0.9056) 
+    print(traj_normalized)
     quantum_outputs, n_qubits, n_cbits = all_probabilities(traj_normalized,
                                         varepsilon=0.05, 
                                         n_qubits=9, 
                                         n_cbits=9, 
-                                        seed=42)
+                                        seed=42,
+                                        lll=2000)
 
-    ##print(quantum_outputs)
+    print(quantum_outputs)
     ridge, washout, nstop_train = train_ridge_model(washout=50,
                                                     nstop_train=2000,
                                                     alpha=0,
                                                     loading_dataX=quantum_outputs,
                                                     loading_datay=traj_normalized)
 
-    predictions = predict_next_state(method=ridge, loading_dataX=quantum_outputs, loading_datay=traj_normalized)
+    predictions = predict_next_state(method=ridge, loading_dataX=quantum_outputs, loading_datay=traj_normalized, llll=2000)
 
-    ##print(predictions)
+    for i in range(2000,2000+llll):  
+        features = quantum_outputs[i]  # 使用已有的量子输出
+        all_state_pred = ridge.predict([features])  # 使用传入的method对象
+        predictions.append(all_state_pred[0])
+
+    predictions = np.array(predictions)
+
+
+
     mse = mean_squared_error(traj_normalized[nstop_train+1:], predictions[nstop_train:-1])#检查过，引用函数与文献一致
     print(f"测试集MSE: {mse}")
-    
-    plot_normalized_traj(traj_normalized, title="Normalized Lorenz 63 Attractor")
+    #plot_normalized_traj(traj_normalized, title="Normalized Lorenz 63 Attractor")
     plot_comparison(dimensions=('x', 'y', 'z'), plot_3d=False, plot_washout = False)

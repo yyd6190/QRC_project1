@@ -11,7 +11,6 @@ from sklearn.metrics import mean_squared_error
 from mpl_toolkits.mplot3d import Axes3D
 
 #Lorenz63系统部分
-
 def lorenz63(x0, sigma, rho, beta, num_steps):
     dt = 6/(num_steps*0.9056)
     def RK45(x, func, h):
@@ -52,165 +51,6 @@ def lorenz63(x0, sigma, rho, beta, num_steps):
     traj_normalized = normalize_trajectory(traj)
     return traj_normalized
 
-#Classical Reservoir Computing 部分
-'''
-class ClassicalReservoirComputing:
-    def __init__(self, 
-                 n_reservoir=200,
-                 sparsity=0.05,
-                 spectral_radius=0.95,
-                 noise=1e-3,
-                 input_scaling=0.5,
-                 ridge_alpha=1e-4,
-                 input_dim=3):  # 添加输入维度参数
-        """
-        Classical Reservoir Computing (经典回声状态网络)实现
-        
-        Args:
-            n_reservoir: 储层中神经元数量
-            sparsity: 储层连接的稀疏度（0到1之间）
-            spectral_radius: 储层权重矩阵的谱半径，影响系统记忆长度
-            noise: 训练时添加的噪声大小
-            input_scaling: 输入缩放因子
-            ridge_alpha: 岭回归正则化参数
-            input_dim: 输入维度
-        """
-        self.n_reservoir = n_reservoir
-        self.sparsity = sparsity
-        self.spectral_radius = spectral_radius
-        self.noise = noise
-        self.input_scaling = input_scaling
-        self.ridge_alpha = ridge_alpha
-        self.input_dim = input_dim
-        
-        # 随机初始化储层权重
-        self.W_reservoir = self._initialize_reservoir()
-        
-        # 初始化输入权重矩阵 (将输入维度映射到储层维度)
-        self.W_in = np.random.rand(n_reservoir, input_dim) * 2 - 1
-        
-        # 训练后获得的输出权重
-        self.W_out = None
-        self.intercept = None
-        
-    def _initialize_reservoir(self):
-        """初始化储层权重矩阵"""
-        # 创建随机稀疏矩阵
-        W = np.random.rand(self.n_reservoir, self.n_reservoir) - 0.5
-        # 设置稀疏性
-        mask = np.random.rand(self.n_reservoir, self.n_reservoir) < self.sparsity
-        W *= mask
-        # 计算矩阵的最大特征值
-        eigenvalues = np.linalg.eigvals(W)
-        max_eigen = np.max(np.abs(eigenvalues))
-        # 缩放矩阵使其谱半径为spectral_radius
-        W *= self.spectral_radius / max_eigen
-        return W
-        
-    def _update(self, state, input_signal):
-        """
-        更新储层状态
-        
-        Args:
-            state: 当前储层状态，形状为(n_reservoir,)
-            input_signal: 输入信号，形状为(input_dim,)
-            
-        Returns:
-            新的储层状态
-        """
-        # 使用输入权重矩阵将输入信号映射到储层维度
-        input_scaled = np.dot(self.W_in, input_signal) * self.input_scaling
-        
-        # 非线性激活函数 - 使用tanh
-        return np.tanh(np.dot(self.W_reservoir, state) + 
-                     input_scaled + 
-                     self.noise * (np.random.rand(self.n_reservoir) - 0.5))
-    
-    def fit(self, X, Y):
-        """
-        训练储层计算模型
-        
-        Args:
-            X: 输入时间序列，形状为(n_samples, n_features)
-            Y: 目标输出，形状为(n_samples, n_outputs)
-        """
-        n_samples = X.shape[0]
-        
-        # 初始化储层状态
-        state = np.zeros((self.n_reservoir,))
-        states_collection = np.zeros((n_samples, self.n_reservoir))
-        
-        # 收集储层状态
-        for i in range(n_samples):
-            input_signal = X[i]
-            state = self._update(state, input_signal)
-            states_collection[i] = state
-        
-        # 使用岭回归训练输出层
-        ridge = Ridge(alpha=self.ridge_alpha)
-        ridge.fit(states_collection, Y)
-        self.W_out = ridge.coef_
-        self.intercept = ridge.intercept_
-        
-        return self
-        
-    def predict(self, X):
-        """
-        使用训练好的模型进行预测
-        
-        Args:
-            X: 输入时间序列，形状为(n_samples, n_features)
-            
-        Returns:
-            预测值，形状为(n_samples, n_outputs)
-        """
-        n_samples = X.shape[0]
-        n_outputs = self.W_out.shape[0]
-        predictions = np.zeros((n_samples, n_outputs))
-        
-        # 初始化状态
-        state = np.zeros((self.n_reservoir,))
-        
-        # 逐步预测
-        for i in range(n_samples):
-            input_signal = X[i]
-            state = self._update(state, input_signal)
-            prediction = np.dot(self.W_out, state) + self.intercept
-            predictions[i] = prediction
-            
-        return predictions
-    
-    def predict_future(self, X_init, steps, feedback=True):
-        """
-        对未来进行预测
-        
-        Args:
-            X_init: 初始输入状态，形状为(n_features,)
-            steps: 需要预测的步数
-            feedback: 是否使用预测结果作为下一步的输入
-            
-        Returns:
-            预测序列，形状为(steps, n_outputs)
-        """
-        n_outputs = self.W_out.shape[0]
-        predictions = np.zeros((steps, n_outputs))
-        
-        # 初始化状态
-        state = np.zeros((self.n_reservoir,))
-        current_input = X_init
-        
-        # 逐步预测
-        for i in range(steps):
-            state = self._update(state, current_input)
-            prediction = np.dot(self.W_out, state) + self.intercept
-            predictions[i] = prediction
-            
-            if feedback:
-                # 使用预测结果作为下一步的输入（闭环预测）
-                current_input = prediction
-                
-        return predictions
-'''
 #Quantum Reservoir Computing 部分
 
 def all_probabilities(traj_normalized,varepsilon, n_qubits, n_cbits, seed):
@@ -233,19 +73,18 @@ def all_probabilities(traj_normalized,varepsilon, n_qubits, n_cbits, seed):
         def module(Ry):
             circuit = QCircuit()
             Ry_index = 0
-            ccc = (len(Ry) + n_qubits - 1) // n_qubits
-            for layer in range(ccc):
-                for qubit in range(n_qubits):
-                    if Ry_index < len(Ry):
-                        circuit << RY(qubits[qubit], Ry[Ry_index])
-                        Ry_index += 1
-                        if qubit < n_qubits - 1:
-                            circuit << CNOT(qubits[qubit], qubits[qubit+1])
+            if Ry_index < len(Ry):
+                circuit << RY(qubits[qubit], Ry[Ry_index])
+                Ry_index += 1
+            return circuit
+        def entangled(mode):
+            circuit = QCircuit()
+            for i in range(len(qubits)):
+                circuit << CNOT(qubits[i], qubits[(i+1)%len(qubits)])
             return circuit
         # 构建量子程序
         prog = QProg()
         circuit = QCircuit()
-        circuit << module(Ry=params)
         circuit << module(Ry=traj_norm)
         circuit << module(Ry=beta_gate)
         prog << circuit
@@ -428,7 +267,8 @@ def plot_comparison(dimensions=('x', 'y', 'z'), plot_3d=True, plot_washout = Fal
         ax.legend()
         plt.show()
 
-#主函数[1.208870, -1.731271, 23.46091]
+
+
 if __name__ == "__main__":
     traj_normalized = lorenz63(x0 = np.array([1.508870, -1.531271, 25.46091]),
                                sigma=10.0,
